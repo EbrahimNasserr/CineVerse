@@ -119,6 +119,20 @@ h6 {
   .poster-card:hover {
     box-shadow: 0px 20px 60px rgba(230, 57, 70, 0.45);
   }
+
+  .release-card {
+    transform: translateY(0);
+    transition:
+      transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .release-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+    border-color: rgba(255, 179, 177, 0.24);
+  }
+
   .poster-card::after {
     content: "";
     position: absolute;
