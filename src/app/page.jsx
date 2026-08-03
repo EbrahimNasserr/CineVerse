@@ -18,7 +18,7 @@ export default function HomePage() {
       <HeroSection />
 
       {/* Now Showing */}
-      <section id="now-showing" className="relative overflow-hidden px-6 py-24 lg:px-10">
+      <section id="now-showing" className="relative overflow-hidden px-6 py-10 lg:px-10">
         <div className="relative mx-auto max-w-content">
           <SectionHeading
             eyebrow="Currently Playing"
@@ -34,7 +34,7 @@ export default function HomePage() {
       {/* Latest Trailers */}
       <section
         id="trailers"
-        className="relative overflow-hidden bg-surface-container-lowest px-6 py-24 lg:px-10"
+        className="relative overflow-hidden bg-surface-container-lowest px-6 py-10 lg:px-10"
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-obsidian via-surface-container-lowest to-obsidian" />
         <div className="relative mx-auto max-w-content">
@@ -68,7 +68,7 @@ export default function HomePage() {
       </section>
 
       {/* CineNews */}
-      <section id="cinews" className="relative overflow-hidden px-6 py-24 lg:px-10">
+      <section id="cinews" className="relative overflow-hidden px-6 py-10 lg:px-10">
         <div className="relative mx-auto max-w-content">
           <SectionHeading
             eyebrow="The Dispatch"
