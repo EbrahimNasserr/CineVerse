@@ -23,7 +23,7 @@ export default function SeatSelectionPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-md py-md md:grid-cols-12">
+    <div className="grid grid-cols-1 gap-md py-28 md:grid-cols-12 max-w-7xl mx-auto">
       <div className="md:col-span-8">
         <h1 className="mb-md text-headline-sm">Choose your seats</h1>
         <SeatMap seats={seats} />

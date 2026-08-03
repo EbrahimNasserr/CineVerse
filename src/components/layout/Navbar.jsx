@@ -226,7 +226,11 @@ function MobileSidebar({ open, onClose, closeBtnRef }) {
 
         {/* Mobile search */}
         <div className="glass mb-6 flex items-center gap-2 rounded-full px-4 py-2.5">
-          <Search size={14} className="shrink-0 text-on-surface-variant" aria-hidden="true" />
+          <Search
+            size={14}
+            className="shrink-0 text-on-surface-variant"
+            aria-hidden="true"
+          />
           <input
             type="search"
             placeholder="Search films, actors…"
@@ -262,7 +266,9 @@ function MobileSidebar({ open, onClose, closeBtnRef }) {
           </Link>
           <div className="flex flex-col leading-tight">
             <span className="text-sm text-on-surface">My Account</span>
-            <span className="text-xs text-on-surface-variant">View profile & bookings</span>
+            <span className="text-xs text-on-surface-variant">
+              View profile & bookings
+            </span>
           </div>
         </div>
       </div>
