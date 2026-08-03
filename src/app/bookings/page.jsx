@@ -37,9 +37,11 @@ function BookingsList() {
 
 export default function BookingsPage() {
   return (
-      <div className="flex flex-col gap-md py-md">
-        <h1 className="text-headline-md">My Bookings</h1>
+     <ProtectedRoute>
+      <div className="flex flex-col gap-md">
+        <h1 className="text-h5 font-semibold text-on-surface">My Bookings</h1>
         <BookingsList />
       </div>
+    </ProtectedRoute>
   );
 }
