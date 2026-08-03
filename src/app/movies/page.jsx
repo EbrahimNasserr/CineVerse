@@ -4,7 +4,7 @@ import { FEATURED_MOVIE } from "@/lib/constants/mockMovies";
 
 export default function MoviesPage() {
   return (
-    <div className="flex flex-col gap-6 py-md">
+    <div className="flex flex-col gap-6 py-20 md:py-20 max-w-7xl mx-auto px-6 md:px-0">
       <section className="relative overflow-hidden rounded-[28px] border border-white/[0.08] bg-gradient-to-br from-crimson/20 via-obsidian to-slate-900/70 p-6 md:p-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(230,57,70,0.22),transparent_45%)]" />
         <div className="absolute -right-10 top-0 h-40 w-40 rounded-full bg-crimson/20 blur-3xl" />

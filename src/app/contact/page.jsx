@@ -29,7 +29,7 @@ const contactPoints = [
 
 export default function ContactPage() {
   return (
-    <div className="flex flex-col gap-6 py-6 md:py-8">
+    <div className="flex flex-col gap-6 py-20 px-2 md:px-0 max-w-7xl mx-auto">
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-gradient-to-br from-teal/15 via-obsidian to-crimson/10 p-6 md:p-8 lg:p-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(111,216,200,0.24),transparent_42%)]" />
         <div className="relative z-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
