@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
           <ScrollProgress />
           <CustomCursor />
           <Navbar />
-          <main>{children}</main>
+          <main className="max-w-7xl mx-auto py-20">{children}</main>
           <Footer />
         </Providers>
       </body>

@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { Bell, Search } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Bell, Search } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import Image from "next/image.js";
 
 const NAV_LINKS = [
-  { href: '/movies', label: 'Explore' },
-  { href: '/movies', label: 'Genres' },
-  { href: '/movies', label: 'Theaters' },
-  { href: '/movies', label: 'Offers' },
+  { href: "/movies", label: "Explore" },
+  { href: "/movies", label: "Genres" },
+  { href: "/movies", label: "Theaters" },
+  { href: "/movies", label: "Offers" },
 ];
 
 export function Navbar() {
@@ -32,17 +33,17 @@ export function Navbar() {
     };
 
     update();
-    window.addEventListener('scroll', update, { passive: true });
-    return () => window.removeEventListener('scroll', update);
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
   }, []);
 
   return (
     <header
       ref={navRef}
       className={cn(
-        'fixed left-0 right-0 top-0 z-50 transition-opacity duration-700 ease-out-expo',
-        ready ? 'translate-y-0 opacity-100' : '-translate-y-8 opacity-0',
-        scrolled && 'nav-scrolled'
+        "fixed left-0 right-0 top-0 z-50 transition-opacity duration-700 ease-out-expo",
+        ready ? "translate-y-0 opacity-100" : "-translate-y-8 opacity-0",
+        scrolled && "nav-scrolled",
       )}
     >
       <div className="nav-bg">
@@ -51,11 +52,14 @@ export function Navbar() {
           className="mx-auto flex max-w-content items-center justify-between px-6 lg:px-10"
           style={{ paddingTop: padding, paddingBottom: padding }}
         >
-          <Link href="/" className="group flex items-center gap-2">
-            <span className="font-display text-2xl font-black tracking-tight lg:text-3xl">
-              <span className="text-primary-container">Cine</span>
-              <span className="text-on-surface">Verse</span>
-            </span>
+          <Link href="/">
+            <Image
+              src="/logo.png"
+              alt="CineVerse logo"
+              width={32}
+              height={32}
+              className=" w-10 object-cover"
+            />
           </Link>
 
           <div className="hidden items-center gap-9 text-sm text-on-surface-variant lg:flex">
@@ -73,7 +77,11 @@ export function Navbar() {
 
           <div className="flex items-center gap-3 lg:gap-5">
             <div className="glass hidden w-56 items-center gap-2 rounded-full px-4 py-2 md:flex lg:w-64">
-              <Search size={14} className="shrink-0 text-on-surface-variant" aria-hidden="true" />
+              <Search
+                size={14}
+                className="shrink-0 text-on-surface-variant"
+                aria-hidden="true"
+              />
               <input
                 type="search"
                 placeholder="Search films, actors…"
