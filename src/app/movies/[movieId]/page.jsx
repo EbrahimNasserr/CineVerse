@@ -22,7 +22,7 @@ export default function MovieDetailPage() {
   const movieIdParam = Array.isArray(movieId) ? movieId[0] : movieId;
 
   const {
-    data: movie,
+    data: movieResponse,
     isLoading,
     isError,
   } = useGetMovieByIdQuery(movieIdParam, { skip: !movieIdParam });
@@ -44,7 +44,9 @@ export default function MovieDetailPage() {
     [movieIdParam],
   );
 
-  const activeMovie = movie ?? fallbackMovie;
+  // Extract movie from API response structure: { success: true, data: {...} }
+  const apiMovie = movieResponse?.success ? movieResponse.data : null;
+  const activeMovie = apiMovie ?? fallbackMovie;
   const activeShowtimes = showtimes?.length ? showtimes : fallbackShowtimes;
   const activeTheaters = useMemo(
     () => (fallbackTheaters.length ? fallbackTheaters : []),
@@ -128,7 +130,7 @@ export default function MovieDetailPage() {
               </p>
               <h2 className="mt-2 text-headline-sm">{activeMovie.title}</h2>
             </div>
-            {!movie && fallbackMovie ? (
+            {!apiMovie && fallbackMovie ? (
               <span className="rounded-full border border-teal/30 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal">
                 Preview mode
               </span>
@@ -136,7 +138,8 @@ export default function MovieDetailPage() {
           </div>
 
           <p className="mt-4 max-w-2xl text-body-md text-on-surface-variant">
-            {activeMovie.synopsis}
+            {/* API uses description, mock uses synopsis */}
+            {activeMovie.description || activeMovie.synopsis}
           </p>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -145,7 +148,8 @@ export default function MovieDetailPage() {
                 Runtime
               </p>
               <p className="mt-1 font-display text-title-md">
-                {activeMovie.runtime || "—"}
+                {/* API uses duration (number of minutes), mock uses runtime (formatted string) */}
+                {activeMovie.duration ? `${activeMovie.duration}m` : activeMovie.runtime || "—"}
               </p>
             </div>
             <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-sm">
@@ -153,7 +157,10 @@ export default function MovieDetailPage() {
                 Year
               </p>
               <p className="mt-1 font-display text-title-md">
-                {activeMovie.year || "—"}
+                {/* API uses releaseDate (ISO string), mock uses year */}
+                {activeMovie.releaseDate
+                  ? new Date(activeMovie.releaseDate).getFullYear()
+                  : activeMovie.year || "—"}
               </p>
             </div>
             <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-sm">

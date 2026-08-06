@@ -12,8 +12,15 @@ export function MovieCard({ movie, index = 0 }) {
   const cardRef = useRef(null);
   const isHover = useMediaQuery('(hover: hover)');
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const hasPoster = Boolean(movie.posterUrl);
-  const rating = movie.rating != null ? movie.rating.toFixed(1) : '—';
+  
+  // Handle both API and mock data structures
+  const movieId = movie._id || movie.id;
+  const posterUrl = movie.poster || movie.posterUrl;
+  const movieRating = movie.imdbRating ?? movie.rating;
+  const runtime = movie.duration ? `${movie.duration}m` : movie.runtime;
+  
+  const hasPoster = Boolean(posterUrl);
+  const rating = movieRating != null ? movieRating.toFixed(1) : '—';
 
   useEffect(() => {
     const card = cardRef.current;
@@ -64,13 +71,13 @@ export function MovieCard({ movie, index = 0 }) {
     <Reveal delay={index * 70}>
       <Link
         ref={cardRef}
-        href={`/movies/${movie.id}`}
+        href={`/movies/${movieId}`}
         data-cursor="view"
         className="poster-card group relative block aspect-[2/3] overflow-hidden rounded-xl border border-white/[0.08]"
       >
         {hasPoster ? (
           <Image
-            src={movie.posterUrl}
+            src={posterUrl}
             alt={movie.title}
             fill
             sizes="(max-width: 768px) 50vw, 16vw"
@@ -97,8 +104,8 @@ export function MovieCard({ movie, index = 0 }) {
           )}
           <h3 className="mb-1 font-display text-lg font-bold leading-tight">{movie.title}</h3>
           <div className="flex items-center gap-2 text-[11px] text-on-surface-variant/60">
-            {movie.runtime && <span>{movie.runtime}</span>}
-            {movie.runtime && <span className="h-1 w-1 rounded-full bg-on-surface-variant/40" />}
+            {runtime && <span>{runtime}</span>}
+            {runtime && <span className="h-1 w-1 rounded-full bg-on-surface-variant/40" />}
             <span className="text-teal">Book</span>
           </div>
         </div>
@@ -109,10 +116,18 @@ export function MovieCard({ movie, index = 0 }) {
 
 MovieCard.propTypes = {
   movie: PropTypes.shape({
-    id: PropTypes.string.isRequired,
+    // API structure uses _id, mock uses id
+    _id: PropTypes.string,
+    id: PropTypes.string,
     title: PropTypes.string.isRequired,
+    // API structure uses poster, mock uses posterUrl
+    poster: PropTypes.string,
     posterUrl: PropTypes.string,
+    // API structure uses imdbRating, mock uses rating
+    imdbRating: PropTypes.number,
     rating: PropTypes.number,
+    // API structure uses duration (minutes), mock uses runtime (formatted string)
+    duration: PropTypes.number,
     runtime: PropTypes.string,
     genres: PropTypes.arrayOf(PropTypes.string),
   }).isRequired,

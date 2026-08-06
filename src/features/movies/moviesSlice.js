@@ -1,5 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+/**
+ * @typedef {Object} MoviesState
+ * @property {string[]} activeGenreFilters
+ * @property {string}   searchQuery
+ */
+
+/** @type {MoviesState} */
 const initialState = {
   activeGenreFilters: [],
   searchQuery: '',
@@ -11,9 +18,12 @@ const moviesSlice = createSlice({
   reducers: {
     toggleGenreFilter(state, action) {
       const genre = action.payload;
-      state.activeGenreFilters = state.activeGenreFilters.includes(genre)
-        ? state.activeGenreFilters.filter((g) => g !== genre)
-        : [...state.activeGenreFilters, genre];
+      const idx = state.activeGenreFilters.indexOf(genre);
+      if (idx === -1) {
+        state.activeGenreFilters.push(genre);
+      } else {
+        state.activeGenreFilters.splice(idx, 1);
+      }
     },
     setSearchQuery(state, action) {
       state.searchQuery = action.payload;
@@ -26,4 +36,5 @@ const moviesSlice = createSlice({
 });
 
 export const { toggleGenreFilter, setSearchQuery, clearFilters } = moviesSlice.actions;
+
 export default moviesSlice.reducer;

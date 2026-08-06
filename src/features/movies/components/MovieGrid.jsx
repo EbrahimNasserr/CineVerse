@@ -9,26 +9,37 @@ import { useSelector } from "@/store/hooks";
 import { MovieCard } from "./MovieCard";
 
 export function MovieGrid() {
-  const { data, isLoading, isError } = useGetMoviesQuery();
+  const { data: response, isLoading, isError } = useGetMoviesQuery({
+    page: 1,
+    limit: 10,
+    search: ""
+  });
   const activeGenreFilters = useSelector(
     (state) => state.movies.activeGenreFilters,
   );
   const searchQuery = useSelector((state) => state.movies.searchQuery);
 
-  const sourceMovies = Array.isArray(data) && data.length ? data : MOCK_MOVIES;
+  // Extract movies from API response structure: { success: true, data: [...], pagination: {...} }
+  const apiMovies = response?.success && Array.isArray(response.data) ? response.data : [];
+  const sourceMovies = apiMovies.length > 0 ? apiMovies : MOCK_MOVIES;
 
   const movies = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 
     const filteredMovies = sourceMovies.filter((movie) => {
+      // Handle both API structure and mock structure
+      const movieGenres = movie.genres || [];
+      const movieTitle = movie.title || "";
+      const movieDescription = movie.description || movie.synopsis || "";
+      
       const matchesGenres =
         !activeGenreFilters.length ||
-        activeGenreFilters.every((genre) => movie.genres?.includes(genre));
+        activeGenreFilters.every((genre) => movieGenres.includes(genre));
 
       const searchableText = [
-        movie.title,
-        movie.synopsis,
-        ...(movie.genres || []),
+        movieTitle,
+        movieDescription,
+        ...movieGenres,
       ]
         .filter(Boolean)
         .join(" ")
@@ -42,7 +53,12 @@ export function MovieGrid() {
 
     return filteredMovies
       .slice()
-      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      .sort((a, b) => {
+        // API movies use imdbRating, mock movies use rating
+        const aRating = a.imdbRating ?? a.rating ?? 0;
+        const bRating = b.imdbRating ?? b.rating ?? 0;
+        return bRating - aRating;
+      });
   }, [activeGenreFilters, searchQuery, sourceMovies]);
 
   if (isLoading) {

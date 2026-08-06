@@ -9,11 +9,13 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { loginSchema } from '@/lib/validators/authSchema';
 import { useLoginMutation } from '@/features/auth/authApi';
+import { useRouter } from 'next/navigation';
 import { useDispatch } from '@/store/hooks';
 import { setCredentials } from '@/features/auth/authSlice';
 
 export function LoginForm() {
   const dispatch = useDispatch();
+  const router   = useRouter();
   const [login, { isLoading, error }] = useLoginMutation();
   const [showPassword, setShowPassword] = useState(false);
   const {
@@ -24,8 +26,10 @@ export function LoginForm() {
 
   const onSubmit = async (values) => {
     try {
+      // API response: { success, message, data: { accessToken, refreshToken, ...user } }
       const result = await login(values).unwrap();
-      dispatch(setCredentials(result));
+      dispatch(setCredentials(result.data));
+      router.replace('/');
     } catch {
       // handled by RTK Query error state below
     }
@@ -67,7 +71,11 @@ export function LoginForm() {
         </Link>
       </div>
 
-      {error && <p className="text-body-sm text-error">Invalid email or password.</p>}
+      {error && (
+        <p className="text-body-sm text-error">
+          {error?.data?.message ?? 'Invalid email or password.'}
+        </p>
+      )}
 
       <Button type="submit" variant="primary" disabled={isLoading}>
         {isLoading ? (

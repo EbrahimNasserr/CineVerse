@@ -8,7 +8,7 @@ import { Spinner } from '@/components/ui/Spinner';
 
 export function ProtectedRoute({ children }) {
   const router = useRouter();
-  const token = useSelector((state) => state.auth.token);
+  const token  = useSelector((state) => state.auth.token);
 
   useEffect(() => {
     if (!token) {
@@ -16,6 +16,8 @@ export function ProtectedRoute({ children }) {
     }
   }, [token, router]);
 
+  // Token is hydrated synchronously from localStorage in authSlice initialState,
+  // so if it's present on the first render we can show the page immediately.
   if (!token) {
     return (
       <div className="flex items-center justify-center py-xl">

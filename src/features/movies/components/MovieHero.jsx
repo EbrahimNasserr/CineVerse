@@ -10,11 +10,18 @@ export function MovieHero({ movie }) {
   const titleLead = titleParts[0].trim();
   const titleAccent = titleParts.slice(1).join(':').trim();
 
+  // Handle both API and mock data structures
+  const posterUrl = movie.poster || movie.posterUrl;
+  const backdropUrl = movie.backdrop || movie.backdropUrl;
+  const movieRating = movie.imdbRating ?? movie.rating;
+  const runtime = movie.duration ? `${movie.duration}m` : movie.runtime;
+  const releaseYear = movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : movie.year;
+
   return (
     <section className="relative min-h-[520px] overflow-hidden lg:min-h-[560px]">
       <div className="absolute inset-0">
         <Image
-          src={movie.backdropUrl || movie.posterUrl}
+          src={backdropUrl || posterUrl}
           alt=""
           fill
           priority
@@ -37,9 +44,9 @@ export function MovieHero({ movie }) {
 
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-10">
           <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-xl border border-white/10 shadow-glow-lg sm:w-48 lg:mx-0 lg:w-56">
-            {movie.posterUrl ? (
+            {posterUrl ? (
               <Image
-                src={movie.posterUrl}
+                src={posterUrl}
                 alt={`${movie.title} poster`}
                 fill
                 className="object-cover"
@@ -59,7 +66,7 @@ export function MovieHero({ movie }) {
                   ))}
                 </span>
                 <span className="text-on-surface">
-                  {movie.rating != null ? movie.rating.toFixed(1) : '—'}
+                  {movieRating != null ? movieRating.toFixed(1) : '—'}
                 </span>
                 <span className="text-on-surface-variant/60">· IMDb</span>
               </span>
@@ -87,9 +94,9 @@ export function MovieHero({ movie }) {
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-on-surface-variant/80">
               {movie.director && <span>Directed by {movie.director}</span>}
-              {movie.runtime && <span>{movie.runtime}</span>}
-              {movie.year && <span>{movie.year}</span>}
-              {movie.certification && <span>{movie.certification}</span>}
+              {runtime && <span>{runtime}</span>}
+              {releaseYear && <span>{releaseYear}</span>}
+              {(movie.certification || movie.ageRating) && <span>{movie.certification || movie.ageRating}</span>}
             </div>
           </div>
         </div>
@@ -101,13 +108,22 @@ export function MovieHero({ movie }) {
 MovieHero.propTypes = {
   movie: PropTypes.shape({
     title: PropTypes.string.isRequired,
+    // API structure
+    poster: PropTypes.string,
+    backdrop: PropTypes.string,
+    imdbRating: PropTypes.number,
+    duration: PropTypes.number, // minutes
+    releaseDate: PropTypes.string, // ISO date
+    ageRating: PropTypes.string,
+    // Mock structure
     posterUrl: PropTypes.string,
     backdropUrl: PropTypes.string,
     rating: PropTypes.number,
-    genres: PropTypes.arrayOf(PropTypes.string),
-    runtime: PropTypes.string,
+    runtime: PropTypes.string, // formatted
     year: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     certification: PropTypes.string,
+    // Common
+    genres: PropTypes.arrayOf(PropTypes.string),
     director: PropTypes.string,
   }).isRequired,
 };

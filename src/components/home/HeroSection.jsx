@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Calendar, Info } from 'lucide-react';
 import { Reveal } from './Reveal';
 import { FEATURED_MOVIE } from '@/lib/constants/mockMovies';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useGetMoviesQuery } from '@/features/movies/moviesApi';
+import { Spinner } from '@/components/ui/Spinner';
 
 function MagneticLink({ href, className, children }) {
   const ref = useRef(null);
@@ -45,10 +47,33 @@ function MagneticLink({ href, className, children }) {
  * HeroSection — full-bleed cinematic hero matching the CineVerse landing sketch.
  */
 export function HeroSection() {
-  const movie = FEATURED_MOVIE;
   const bgRef = useRef(null);
   const sectionRef = useRef(null);
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+  const { data: response, isLoading } = useGetMoviesQuery({ page: 1, limit: 100 });
+
+  // Pick the movie with the highest imdbRating from the API, fall back to mock
+  const movie = useMemo(() => {
+    const apiMovies = response?.success && Array.isArray(response.data) ? response.data : [];
+    if (!apiMovies.length) return FEATURED_MOVIE;
+
+    return apiMovies.reduce((best, current) =>
+      (current.imdbRating ?? 0) > (best.imdbRating ?? 0) ? current : best,
+    );
+  }, [response]);
+
+  // Normalise fields — API and mock use different names
+  const movieId      = movie._id   || movie.id;
+  const posterUrl    = movie.poster    || movie.posterUrl    || '';
+  const backdropUrl  = movie.backdrop  || movie.backdropUrl  || '';
+  const rating       = movie.imdbRating ?? movie.rating;
+  const synopsis     = movie.description || movie.synopsis || '';
+  const runtime      = movie.duration ? `${movie.duration}m` : (movie.runtime || '');
+  const releaseYear  = movie.releaseDate
+    ? new Date(movie.releaseDate).getFullYear()
+    : movie.year;
+  const certification = movie.ageRating || movie.certification || '';
 
   useEffect(() => {
     if (reduceMotion) return undefined;
@@ -65,9 +90,17 @@ export function HeroSection() {
     return () => window.removeEventListener('scroll', onScroll);
   }, [reduceMotion]);
 
-  const titleParts = movie.title.split(':');
-  const titleLead = titleParts[0];
+  const titleParts  = movie.title.split(':');
+  const titleLead   = titleParts[0].trim();
   const titleAccent = titleParts.slice(1).join(':').trim();
+
+  if (isLoading) {
+    return (
+      <section className="relative flex min-h-screen min-h-[680px] w-full items-center justify-center">
+        <Spinner size={40} />
+      </section>
+    );
+  }
 
   return (
     <section
@@ -75,7 +108,7 @@ export function HeroSection() {
       className="relative min-h-screen min-h-[680px] w-full overflow-hidden"
     >
       <div ref={bgRef} className="absolute inset-0 kenburns">
-        <Image src={movie.backdropUrl} alt="" fill priority className="object-cover" />
+        <Image src={backdropUrl || posterUrl} alt="" fill priority className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-obsidian via-obsidian/70 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-obsidian/40" />
         <div className="hero-vignette" />
@@ -91,31 +124,39 @@ export function HeroSection() {
                   <Star key={i} size={11} className="fill-gold text-gold" />
                 ))}
               </span>
-              <span className="text-on-surface">{movie.rating.toFixed(1)}</span>
+              <span className="text-on-surface">{rating != null ? rating.toFixed(1) : '—'}</span>
               <span className="text-on-surface-variant/60">· IMDb</span>
             </span>
-            <span className="rounded border border-teal/30 bg-teal/5 px-3 py-1.5 text-xs font-semibold text-teal">
-              {movie.genres.join(' · ')}
-            </span>
+            {movie.genres?.length > 0 && (
+              <span className="rounded border border-teal/30 bg-teal/5 px-3 py-1.5 text-xs font-semibold text-teal">
+                {movie.genres.join(' · ')}
+              </span>
+            )}
           </Reveal>
 
           <Reveal delay={120}>
             <h1 className="flicker mb-6 text-balance font-display text-6xl font-black leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
-              {titleLead}:
-              <br />
-              <span className="text-gradient-crimson">{titleAccent}</span>
+              {titleAccent ? (
+                <>
+                  {titleLead}:
+                  <br />
+                  <span className="text-gradient-crimson">{titleAccent}</span>
+                </>
+              ) : (
+                movie.title
+              )}
             </h1>
           </Reveal>
 
           <Reveal delay={240}>
             <p className="mb-8 max-w-xl text-balance text-base font-light leading-relaxed text-on-surface-variant lg:text-lg">
-              {movie.synopsis}
+              {synopsis}
             </p>
           </Reveal>
 
           <Reveal delay={360} className="flex flex-wrap items-center gap-4">
             <MagneticLink
-              href={`/movies/${movie.id}`}
+              href={`/movies/${movieId}`}
               className="btn-crimson flex items-center gap-2.5 rounded-xl px-7 py-4 text-sm font-semibold normal-case tracking-normal text-white"
             >
               <Calendar size={16} />
@@ -123,7 +164,7 @@ export function HeroSection() {
               <span className="ml-1 text-xs font-normal text-white/70">· from $14.99</span>
             </MagneticLink>
             <MagneticLink
-              href={`/movies/${movie.id}`}
+              href={`/movies/${movieId}`}
               className="btn-ghost flex items-center gap-2.5 rounded-xl px-7 py-4 text-sm font-semibold normal-case tracking-normal text-on-surface"
             >
               <Info size={16} />
@@ -139,9 +180,9 @@ export function HeroSection() {
               <span className="h-1 w-1 rounded-full bg-primary-container" />
               In theaters now
             </span>
-            <span>{movie.runtime}</span>
-            <span>{movie.year}</span>
-            {movie.certification && <span className="hidden sm:inline">{movie.certification}</span>}
+            {runtime    && <span>{runtime}</span>}
+            {releaseYear && <span>{releaseYear}</span>}
+            {certification && <span className="hidden sm:inline">{certification}</span>}
           </Reveal>
         </div>
       </div>
