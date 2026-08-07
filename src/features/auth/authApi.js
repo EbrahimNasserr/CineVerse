@@ -2,6 +2,7 @@ import { baseApi } from '@/lib/api/baseQuery';
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // POST /auth/login
     login: builder.mutation({
       query: (credentials) => ({
         url: '/auth/login',
@@ -10,6 +11,8 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'User', id: 'ME' }],
     }),
+
+    // POST /auth/register
     register: builder.mutation({
       query: (payload) => ({
         url: '/auth/register',
@@ -18,12 +21,31 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'User', id: 'ME' }],
     }),
+
+    // GET /me  →  authMiddleware → getUser
     getCurrentUser: builder.query({
-      query: () => '/auth/me',
+      query: () => '/me',
+      // API response shape: { success, data: { id, firstName, lastName, username, email, role, ... } }
+      transformResponse: (response) => response?.data ?? response,
       providesTags: [{ type: 'User', id: 'ME' }],
     }),
+
+    // POST /logout  →  authMiddleware → logoutUser
+    logoutUser: builder.mutation({
+      query: () => ({
+        url: '/logout',
+        method: 'POST',
+      }),
+      // Wipe the cached user profile after server-side logout
+      invalidatesTags: [{ type: 'User', id: 'ME' }],
+    }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
-export const { useLoginMutation, useRegisterMutation, useGetCurrentUserQuery } = authApi;
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+  useGetCurrentUserQuery,
+  useLogoutUserMutation,
+} = authApi;
