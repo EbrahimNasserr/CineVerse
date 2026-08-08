@@ -87,6 +87,12 @@ export function LoginForm() {
           'Sign In'
         )}
       </Button>
+       <p className="text-center text-body-sm text-on-surface-variant">
+        Don&apos;t have an account?{' '}
+        <Link href="/register" className="text-on-surface hover:underline">
+          Sign up
+        </Link>
+      </p>
     </form>
   );
 }
