@@ -87,7 +87,7 @@ const releaseTimeline = [
 
 export default function ReleasesPage() {
   return (
-    <div className="flex flex-col gap-6 py-16 px-6 md:px-0 md:py-20 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6 py-16 px-2 md:px-0 md:py-20 max-w-7xl mx-auto">
       <section className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-gradient-to-br from-crimson/20 via-obsidian to-slate-900/70 p-6 md:p-8 lg:p-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(230,57,70,0.26),transparent_42%)]" />
         <div className="absolute -right-10 top-10 h-56 w-56 rounded-full bg-crimson/20 blur-3xl" />

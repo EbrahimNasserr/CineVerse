@@ -39,6 +39,24 @@ export const authApi = baseApi.injectEndpoints({
       // Wipe the cached user profile after server-side logout
       invalidatesTags: [{ type: 'User', id: 'ME' }],
     }),
+
+    // POST /auth/password/request-otp
+    requestPasswordOtp: builder.mutation({
+      query: (payload) => ({
+        url: '/auth/password/request-otp',
+        method: 'POST',
+        body: payload, // { email }
+      }),
+    }),
+
+    // POST /auth/password/change
+    changePassword: builder.mutation({
+      query: (payload) => ({
+        url: '/auth/password/change',
+        method: 'POST',
+        body: payload, // { email, otp, newPassword }
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -48,4 +66,6 @@ export const {
   useRegisterMutation,
   useGetCurrentUserQuery,
   useLogoutUserMutation,
+  useRequestPasswordOtpMutation,
+  useChangePasswordMutation,
 } = authApi;

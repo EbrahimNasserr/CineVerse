@@ -66,7 +66,7 @@ export function LoginForm() {
           />
           Remember me
         </label>
-        <Link href="/forgot-password" className="text-on-surface-variant hover:text-on-surface hover:underline">
+        <Link href="/change-password" className="text-on-surface-variant hover:text-on-surface hover:underline">
           Forgot password?
         </Link>
       </div>

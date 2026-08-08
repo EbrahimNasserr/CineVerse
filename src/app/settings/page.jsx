@@ -270,13 +270,7 @@ function SettingsContent() {
             icon={Lock}
             label="Change Password"
             description="Update your login credentials"
-            href="/settings/change-password"
-          />
-          <SettingsRow
-            icon={Shield}
-            label="Active Sessions"
-            description="Review devices logged into your account"
-            href="/settings/sessions"
+            href="/change-password"
           />
         </SettingsCard>
 
