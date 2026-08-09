@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 
 import { useDispatch, useSelector } from '@/store/hooks';
 import { useGetShowtimeByIdQuery } from '@/features/showtimes/showtimesApi';
@@ -19,12 +20,12 @@ import { clearSelectedSeats } from '@/features/seats/seatsSlice';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
-import { PaymentMethod } from '@/features/booking/components/PaymentMethod';
 import { BookingSummary } from '@/features/booking/components/BookingSummary';
+import { StripeProvider } from '@/features/booking/components/StripeProvider';
 import { checkoutSchema } from '@/lib/validators/checkoutSchema';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 
-const SERVICE_FEE_RATE = 0.05; // mirrors server: subtotal × 5%
+const SERVICE_FEE_RATE = 0.05;
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
@@ -44,8 +45,8 @@ function StepIndicator({ current }) {
               <span
                 className={[
                   'flex h-7 w-7 items-center justify-center rounded-full text-body-sm font-bold transition-colors',
-                  isDone   ? 'bg-teal text-obsidian'        : '',
-                  isActive ? 'bg-crimson text-white'        : '',
+                  isDone   ? 'bg-teal text-obsidian'              : '',
+                  isActive ? 'bg-crimson text-white'              : '',
                   !isDone && !isActive ? 'bg-white/10 text-on-surface-variant' : '',
                 ].join(' ')}
                 aria-current={isActive ? 'step' : undefined}
@@ -87,37 +88,36 @@ function HoldExpiry({ expiresAt }) {
   );
 }
 
-// ─── Page guard — redirects back if no pending booking exists ─────────────────
+// ─── Page guard ───────────────────────────────────────────────────────────────
 
 function useBookingGuard(showtimeId) {
-  const router          = useRouter();
+  const router           = useRouter();
   const pendingBookingId = useSelector((state) => state.booking.pendingBookingId);
+  const navigatingAway   = useRef(false);
 
   useEffect(() => {
-    if (!pendingBookingId) {
+    if (!pendingBookingId && !navigatingAway.current) {
       router.replace(`/booking/${showtimeId}`);
     }
   }, [pendingBookingId, router, showtimeId]);
 
-  return pendingBookingId;
+  return { pendingBookingId, navigatingAway };
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Inner form — must live inside <Elements> so useStripe/useElements work ──
 
-export default function CheckoutPage() {
-  const { showtimeId } = useParams();
-  const router         = useRouter();
-  const dispatch       = useDispatch();
+function CheckoutForm({ showtimeId, slot, total, navigatingAway }) {
+  const router   = useRouter();
+  const dispatch = useDispatch();
+  const stripe   = useStripe();
+  const elements = useElements();
 
-  const pendingBookingId  = useBookingGuard(showtimeId);
-  const seatHoldExpiresAt = useSelector((state) => state.booking.seatHoldExpiresAt);
+  const pendingBookingId  = useSelector((state) => state.booking.pendingBookingId);
   const clientSecret      = useSelector((state) => state.booking.clientSecret);
   const selectedSeatIds   = useSelector((state) => state.seats.selectedSeatIds);
   const selectedLabels    = useSelector((state) => state.booking.selectedLabels ?? []);
+  const seatHoldExpiresAt = useSelector((state) => state.booking.seatHoldExpiresAt);
   const bookingError      = useSelector((state) => state.booking.error);
-
-  const { data: slotData } = useGetShowtimeByIdQuery(showtimeId, { skip: !showtimeId });
-  const slot = slotData?.data ?? slotData ?? null;
 
   const [confirmBooking, { isLoading: confirming }] = useConfirmBookingMutation();
 
@@ -130,54 +130,83 @@ export default function CheckoutPage() {
     defaultValues: { paymentMethod: 'card' },
   });
 
-  // Derive summary values from slot price
   const pricePerSeat = slot?.price ?? 0;
   const seatTotal    = selectedSeatIds.length * pricePerSeat;
   const serviceFee   = parseFloat((seatTotal * SERVICE_FEE_RATE).toFixed(2));
-  const total        = seatTotal + serviceFee;
-
   const showtimeLabel = slot
     ? `${slot.theater} · ${slot.screen ?? 'Screen 1'} · ${slot.startTime}`
     : '';
 
   const onSubmit = async (formValues) => {
-    if (!pendingBookingId) return;
+    if (!pendingBookingId || !stripe || !elements) return;
+
+    dispatch(setBookingError(null));
 
     try {
-      dispatch(setBookingError(null));
+      // 1. Submit the PaymentElement form (validates card fields).
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        dispatch(setBookingError(submitError.message ?? 'Card details are incomplete.'));
+        return;
+      }
 
-      // Extract the PaymentIntent ID from the client secret.
-      // Format: pi_xxx_secret_yyy  →  we need "pi_xxx" only.
-      const paymentIntentId = clientSecret?.split('_secret_')[0] ?? '';
+      // 2. Confirm the payment with Stripe directly.
+      //    This charges the card; Stripe sets the PaymentIntent to "succeeded".
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        clientSecret,
+        confirmParams: {
+          payment_method_data: {
+            billing_details: {
+              name:  formValues.name,
+              email: formValues.email,
+            },
+          },
+          // Stripe will redirect here only if the payment method requires it
+          // (e.g. 3D-Secure). We handle success inline when redirect is not needed.
+          return_url: `${window.location.origin}/bookings?confirmed=1`,
+        },
+        redirect: 'if_required',
+      });
 
+      if (stripeError) {
+        dispatch(setBookingError(stripeError.message ?? 'Payment failed. Please try again.'));
+        return;
+      }
+
+      // paymentIntent.status is now "succeeded" (or "requires_capture" for manual capture)
+      const paymentIntentId = paymentIntent?.id ?? clientSecret?.split('_secret_')[0] ?? '';
+
+      // 3. Notify the backend to confirm the booking.
       const result = await confirmBooking({
-        bookingId:       pendingBookingId,
-        paymentIntentId: paymentIntentId,
+        bookingId: pendingBookingId,
+        paymentIntentId,
       }).unwrap();
 
-      // Clean up transient state after a successful confirmation.
-      dispatch(clearSelectedSeats());
-      dispatch(clearPendingBooking());
-      dispatch(resetCheckout());
-      dispatch(setCheckoutStep('confirmation'));
+      // 4. Clean up transient UI state.
+      // 4. Navigate first, then clean up Redux on the next tick.
+      //    Raise the flag before clearing Redux so the guard's useEffect
+      //    sees it and skips its router.replace() when pendingBookingId → null.
+      const bookingId = result?.booking?._id ?? pendingBookingId;
+      navigatingAway.current = true;
+      router.push(`/bookings/${bookingId}?confirmed=1`);
 
-      // Navigate to the confirmation page using the booking number when available.
-      const bookingNumber = result?.booking?.bookingNumber;
-      const bookingId     = result?.booking?._id ?? pendingBookingId;
-
-      router.push(bookingNumber
-        ? `/bookings/${bookingId}?confirmed=1`
-        : `/bookings/${bookingId}?confirmed=1`
-      );
-    } catch (err) {
+      setTimeout(() => {
+        dispatch(clearSelectedSeats());
+        dispatch(clearPendingBooking());
+        dispatch(resetCheckout());
+        dispatch(setCheckoutStep('confirmation'));
+      }, 0);
       dispatch(setBookingError(err?.data?.message ?? 'Payment failed. Please try again.'));
+    }
+    catch {
+
+      dispatch(setBookingError('Something went wrong. Please try again.'));
+
     }
   };
 
-  if (!pendingBookingId) {
-    // Guard is redirecting — render nothing to avoid flicker.
-    return null;
-  }
+  const isProcessing = confirming || !stripe || !elements;
 
   return (
     <section className="mx-auto max-w-5xl px-md py-28">
@@ -207,7 +236,26 @@ export default function CheckoutPage() {
               {...register('email')}
               error={errors.email?.message}
             />
-            <PaymentMethod register={register} />
+
+            {/* Stripe-hosted card fields */}
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 text-label-caps text-on-surface-variant">
+                Card Details
+              </legend>
+              <div className="rounded border border-white/[0.08] px-sm py-sm">
+                <PaymentElement
+                  options={{
+                    layout: 'tabs',
+                    defaultValues: {
+                      billingDetails: {
+                        name:  '',
+                        email: '',
+                      },
+                    },
+                  }}
+                />
+              </div>
+            </fieldset>
           </form>
 
           {bookingError && (
@@ -232,7 +280,9 @@ export default function CheckoutPage() {
 
           <div className="glass rounded-lg px-md py-sm text-body-sm">
             <div className="flex justify-between text-on-surface-variant">
-              <span>{selectedSeatIds.length} × seat ({formatCurrency(pricePerSeat)})</span>
+              <span>
+                {selectedSeatIds.length} × seat ({formatCurrency(pricePerSeat)})
+              </span>
               <span>{formatCurrency(seatTotal)}</span>
             </div>
             <div className="flex justify-between text-on-surface-variant">
@@ -249,9 +299,9 @@ export default function CheckoutPage() {
             type="submit"
             form="checkout-form"
             variant="primary"
-            disabled={confirming}
+            disabled={isProcessing}
           >
-            {confirming ? (
+            {isProcessing ? (
               <span className="flex items-center gap-xs">
                 <Spinner size={16} />
                 Processing…
@@ -265,6 +315,7 @@ export default function CheckoutPage() {
             variant="secondary"
             type="button"
             onClick={() => {
+              navigatingAway.current = true;
               dispatch(clearPendingBooking());
               router.push(`/booking/${showtimeId}`);
             }}
@@ -278,3 +329,27 @@ export default function CheckoutPage() {
   );
 }
 
+// ─── Page — wraps CheckoutForm in StripeProvider ──────────────────────────────
+
+export default function CheckoutPage() {
+  const { showtimeId } = useParams();
+  const { pendingBookingId, navigatingAway } = useBookingGuard(showtimeId);
+  const clientSecret    = useSelector((state) => state.booking.clientSecret);
+  const selectedSeatIds = useSelector((state) => state.seats.selectedSeatIds);
+
+  const { data: slotData } = useGetShowtimeByIdQuery(showtimeId, { skip: !showtimeId });
+  const slot = slotData?.data ?? slotData ?? null;
+
+  const pricePerSeat = slot?.price ?? 0;
+  const seatTotal    = selectedSeatIds.length * pricePerSeat;
+  const serviceFee   = parseFloat((seatTotal * SERVICE_FEE_RATE).toFixed(2));
+  const total        = seatTotal + serviceFee;
+
+  if (!pendingBookingId) return null;
+
+  return (
+    <StripeProvider clientSecret={clientSecret}>
+      <CheckoutForm showtimeId={showtimeId} slot={slot} total={total} navigatingAway={navigatingAway} />
+    </StripeProvider>
+  );
+}
