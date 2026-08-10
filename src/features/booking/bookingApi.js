@@ -92,6 +92,46 @@ export const bookingApi = baseApi.injectEndpoints({
     getStripeConfig: builder.query({
       query: () => '/bookings/config/stripe',
     }),
+
+    // ── Admin endpoints ────────────────────────────────────────────────────────
+
+    /**
+     * GET /admin/bookings?status=&paymentStatus=&movieId=&slotId=
+     *                     &startDate=&endDate=&page=&limit=&sortBy=
+     * Returns all bookings across all users with full pagination.
+     */
+    getAllBookings: builder.query({
+      query: (filters = {}) => {
+        const {
+          status,
+          paymentStatus,
+          movieId,
+          slotId,
+          startDate,
+          endDate,
+          page = 1,
+          limit = 10,
+          sortBy = '-createdAt',
+        } = filters;
+
+        const params = new URLSearchParams({ page, limit, sortBy });
+        if (status) params.set('status', status);
+        if (paymentStatus) params.set('paymentStatus', paymentStatus);
+        if (movieId) params.set('movieId', movieId);
+        if (slotId) params.set('slotId', slotId);
+        if (startDate) params.set('startDate', startDate);
+        if (endDate) params.set('endDate', endDate);
+
+        return `/bookings?${params.toString()}`;
+      },
+      providesTags: (result) =>
+        result?.bookings
+          ? [
+              ...result.bookings.map(({ _id }) => ({ type: 'Booking', id: _id })),
+              { type: 'Booking', id: 'ADMIN_LIST' },
+            ]
+          : [{ type: 'Booking', id: 'ADMIN_LIST' }],
+    }),
   }),
   overrideExisting: true,
 });
@@ -104,4 +144,5 @@ export const {
   useGetBookingByIdQuery,
   useGetBookingByNumberQuery,
   useGetStripeConfigQuery,
+  useGetAllBookingsQuery,
 } = bookingApi;

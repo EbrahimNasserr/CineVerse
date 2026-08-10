@@ -12,7 +12,6 @@ export const moviesApi = baseApi.injectEndpoints({
         url: '/movie',
         params,
       }),
-      // The API wraps results in { data: [...], pagination: {...} }
       providesTags: (result) =>
         result?.data
           ? [
@@ -32,8 +31,66 @@ export const moviesApi = baseApi.injectEndpoints({
       providesTags: (result) =>
         result?.data ? [{ type: 'Movie', id: result.data._id }] : [],
     }),
+
+    // ── Admin mutations ────────────────────────────────────────────────────────
+
+    /**
+     * POST /admin/movies  (multipart/form-data — poster & backdrop files)
+     * Body matches createMovie controller: title, description, duration,
+     * director, releaseDate, poster (url fallback), backdrop (url fallback),
+     * trailer, cast[], genres[], languages[], writer, production, country,
+     * imdbRating, ageRating, status, featured, trending, isActive.
+     */
+    createMovie: builder.mutation({
+      query: (formData) => ({
+        url: '/movie',
+        method: 'POST',
+        body: formData,
+        // Let the browser set the multipart boundary automatically.
+        formData: true,
+      }),
+      invalidatesTags: [{ type: 'Movie', id: 'LIST' }],
+    }),
+
+    /**
+     * PATCH /admin/movies/:id
+     * Accepts the same fields as createMovie; only provided fields are updated.
+     */
+    updateMovie: builder.mutation({
+      query: ({ id, formData }) => ({
+        url: `/movie/${id}`,
+        method: 'PATCH',
+        body: formData,
+        formData: true,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Movie', id },
+        { type: 'Movie', id: 'LIST' },
+      ],
+    }),
+
+    /**
+     * DELETE /admin/movies/:id
+     * Hard-deletes the movie and its associated files.
+     */
+    deleteMovie: builder.mutation({
+      query: (id) => ({
+        url: `/movie/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'Movie', id },
+        { type: 'Movie', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetMoviesQuery, useGetMovieByIdQuery } = moviesApi;
+export const {
+  useGetMoviesQuery,
+  useGetMovieByIdQuery,
+  useCreateMovieMutation,
+  useUpdateMovieMutation,
+  useDeleteMovieMutation,
+} = moviesApi;

@@ -28,7 +28,7 @@ export const showtimesApi = baseApi.injectEndpoints({
 
     /**
      * GET /api/slots?movie=:movieId
-     * All active slots for a specific movie — used on the movie detail page.
+     * All active slots for a specific movie.
      */
     getSlotsByMovie: builder.query({
       query: (movieId) => `/slots?movie=${movieId}&limit=50`,
@@ -40,7 +40,7 @@ export const showtimesApi = baseApi.injectEndpoints({
 
     /**
      * GET /api/slots/:slotId
-     * Single slot with populated movie — used on the seat selection page.
+     * Single slot with populated movie.
      */
     getShowtimeById: builder.query({
       query: (slotId) => `/slots/${slotId}`,
@@ -52,6 +52,54 @@ export const showtimesApi = baseApi.injectEndpoints({
       query: (movieId) => `/slots?movie=${movieId}&limit=50`,
       providesTags: (result, error, movieId) => [{ type: 'Showtime', id: movieId }],
     }),
+
+    // ── Admin mutations ────────────────────────────────────────────────────────
+
+    /**
+     * POST /admin/slots
+     * Creates a slot and bulk-generates its seats.
+     * Body: { movie, theater, screen, date, startTime, endTime,
+     *         language, format, price, layout? }
+     */
+    createSlot: builder.mutation({
+      query: (body) => ({
+        url: '/slots',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Showtime', id: 'LIST' }],
+    }),
+
+    /**
+     * PATCH /admin/slots/:id
+     * Updates mutable slot fields. availableSeats is re-derived server-side.
+     */
+    updateSlot: builder.mutation({
+      query: ({ id, ...body }) => ({
+        url: `/slots/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Showtime', id },
+        { type: 'Showtime', id: 'LIST' },
+      ],
+    }),
+
+    /**
+     * DELETE /admin/slots/:id
+     * Soft-deletes the slot and releases all held seats.
+     */
+    deleteSlot: builder.mutation({
+      query: (id) => ({
+        url: `/slots/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'Showtime', id },
+        { type: 'Showtime', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -61,4 +109,7 @@ export const {
   useGetSlotsByMovieQuery,
   useGetShowtimeByIdQuery,
   useGetShowtimesByMovieQuery,
+  useCreateSlotMutation,
+  useUpdateSlotMutation,
+  useDeleteSlotMutation,
 } = showtimesApi;
